@@ -1,0 +1,103 @@
+<?php
+/*
+Plugin Name:  WooSAP
+Plugin URI:   https://corellainnovations.com
+Description:  Link between wordpress and SAP
+Version:      1.9.1
+Author:       Jhonatan Corella
+Author URI:   https://www.corellainnovations.com
+License:      GPL2
+License URI:  https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain:  woosap
+Domain Path:  /languages
+*/
+
+function so_validate_add_cart_item($passed, $product_id, $quantity, $variation_id = '', $variations = '')
+{
+    // Check if it's a combo product
+    $is_combo = get_field('is_combo', $product_id);
+
+    // Base SAP URL
+    $base_url = 'https://192.168.1.1';//Your SAP Server
+
+    // Create a function to handle SAP API requests
+    function send_sap_request($url, $sessionID)
+    {
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array('Prefer: odata.maxpagesize=0', 'Cookie: B1SESSION=' . $sessionID . '; CompanyDB=CLEAR'),
+        ));
+
+        $response = curl_exec($curl);
+
+        if (curl_errno($curl)) {
+            $error_msg = curl_error($curl);
+            //print_r($error_msg);
+        }
+
+        curl_close($curl);
+
+        return json_decode($response);
+    }
+
+    // Log in to SAP and get a sessionID
+    $sap_login_url = $base_url . '/b1s/v1/Login';
+    $sap_login_data = '{"CompanyDB": "", "UserName": "", "Password": ""}';
+    $sap_response = send_sap_request($sap_login_url, null);
+
+    if (!$sap_response) {
+        return true; // Validation failed if SAP login fails
+    }
+
+    $sessionID = $sap_response->SessionId;
+
+    if ($is_combo == 'Yes') {
+        $sub_skus = get_field('sku_product_one', $product_id);
+        $sku_array = explode(',', $sub_skus);
+
+        $stock1 = send_sap_request($base_url . "/b1s/v1/Items?\$select=ItemCode,ItemName,QuantityOnStock,QuantityOrderedByCustomers,UpdateDate,UpdateTime,ItemPrices,ItemWarehouseInfoCollection&\$filter=ItemCode%20eq%20'" . $sku_array[0] . "'", $sessionID);
+        $stock2 = send_sap_request($base_url . "/b1s/v1/Items?\$select=ItemCode,ItemName,QuantityOnStock,QuantityOrderedByCustomers,UpdateDate,UpdateTime,ItemPrices,ItemWarehouseInfoCollection&\$filter=ItemCode%20eq%20'" . $sku_array[1] . "'", $sessionID);
+
+        if (!$stock1 || !$stock2) {
+            return true; // Validation failed if SAP requests fail
+        }
+
+        $stock1 = $stock1->value[0]->ItemWarehouseInfoCollection[0]->InStock - $stock1->value[0]->ItemWarehouseInfoCollection[0]->Committed;
+        $stock2 = $stock2->value[0]->ItemWarehouseInfoCollection[0]->InStock - $stock2->value[0]->ItemWarehouseInfoCollection[0]->Committed;
+
+        $sap_stock = min($stock1, $stock2);
+    } else {
+        $product = wc_get_product($product_id);
+        $sku = $product->get_sku();
+
+        $product_stock = send_sap_request($base_url . "/b1s/v1/Items?\$select=ItemCode,ItemName,QuantityOnStock,QuantityOrderedByCustomers,UpdateDate,UpdateTime,ItemPrices,ItemWarehouseInfoCollection&\$filter=ItemCode%20eq%20'" . $sku . "'", $sessionID);
+
+        if (!$product_stock) {
+            return true; // Validation failed if SAP request fails
+        }
+
+        $sap_stock = $product_stock->value[0]->ItemWarehouseInfoCollection[0]->InStock - $product_stock->value[0]->ItemWarehouseInfoCollection[0]->Committed;
+    }
+
+    $product->set_stock_quantity($sap_stock);
+    $product->save();
+
+    if ($quantity > $sap_stock) {
+        $passed = false;
+        wc_add_notice(__('Product stock is insufficient', 'woo-sap'), 'error');
+    }
+
+    return $passed;
+}
+
+add_filter('woocommerce_add_to_cart_validation', 'so_validate_add_cart_item', 10, 5);
