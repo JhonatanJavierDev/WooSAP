@@ -6,7 +6,7 @@
 
 - **Real-time Stock Control**: WooSAP synchronizes your WooCommerce inventory with SAP, ensuring accurate stock levels are reflected on your website, reducing the risk of overselling, and improving customer satisfaction.
 
-- **Invoice Processing**: Automate your invoicing process by connecting WooCommerce orders with SAP, streamlining financial operations and reducing manual data entry.
+- **Invoice Processing**: Automate your invoicing process by connecting WooCommerce orders with SAP, streamlining financial operations, and reducing manual data entry.
 
 - **Combo Product Support**: WooSAP fully supports combo products, allowing you to manage the stock of bundled items as a single unit, enhancing the shopping experience for your customers.
 
@@ -26,17 +26,33 @@
 2. Set up combo products and map them to SAP items to enable seamless stock management for bundled products.
 3. Let WooSAP automatically synchronize stock levels and process invoices, saving you time and reducing the risk of errors.
 
+## Adding Custom Product Field (Requirement)
+
+To enhance WooSAP's functionality, it is required to add a new custom field to the product upload panel. This field will enable the linking of products to our plugin for better integration. Follow the steps below to add this field:
+
+1. **Step 1**: Access your WordPress admin panel.
+
+2. **Step 2**: Navigate to the product upload panel settings.
+
+3. **Step 3**: Add a new custom field labeled "WooSAP Integration" or a similar descriptive name.
+
+4. **Step 4**: Configure the field type to allow selection or input of relevant data to link the product with WooSAP.
+
+5. **Step 5**: Ensure that this new field is visible and accessible during the product upload process.
+
+6. **Step 6**: Save the changes to the product upload panel.
+
 ## Screenshots
 
 ![WooSAP Dashboard](https://i.postimg.cc/C5tYZCNV/Screenshot-2023-09-16-095907.png)
 
 ## Support
 
-For any inquiries, issues, or assistance, please [contact our support team](mailto:support@woosap.com).
+For any inquiries, issues, or assistance, please [contact our support team](mailto:support@corellainnovations.com).
 
 ## Contributing
 
-We welcome contributions from the community to enhance WooSAP. Please visit our [GitHub repository](https://github.com/woosap/woosap) to contribute or report issues.
+We welcome contributions from the community to enhance WooSAP. Please visit our [GitHub repository](https://github.com/JhonatanJavierDev/WooSAP) to contribute or report issues.
 
 ## License
 
